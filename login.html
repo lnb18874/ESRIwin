@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>登录/注册界面</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+        }
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 320px;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        input {
+            display: block;
+            margin: 12px 0;
+            padding: 12px;
+            width: calc(100% - 24px);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box; /* 确保padding不撑大宽度 */
+            font-size: 14px;
+        }
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        button {
+            padding: 12px;
+            width: 100%;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .toggle-text {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+        }
+        .toggle-text:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+        /* 切换按钮样式 */
+        .switch-btn {
+            background: none;
+            color: #007bff;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: 14px;
+            margin-top: 10px;
+            width: auto;
+        }
+        .switch-btn:hover {
+            background: none;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <form class="login-form" id="authForm">
+        <h2 id="formTitle">登录</h2>
+    
+        <input type="text" id="username" placeholder="用户名" required>
+        <input type="password" id="password" placeholder="密码" required>
+        <!-- 确认密码默认隐藏 -->
+        <input type="password" id="confirmPassword" placeholder="确认密码" style="display:none;">
+        
+        <button type="submit" id="submitBtn">登录</button>
+        
+        <!-- 两种提示，在切换模式时显示不同的内容 -->
+        <div class="toggle-text" id="toggleMode">
+            <p style="display: block;">还没有账号? <span style="color:#007bff; font-weight:bold; ">去注册</span></p>
+            <p style="display: none;">还没有账号? <span style="color:#007bff; font-weight:bold;">去登录</span></p>
+        </div>
+    </form>
+
+    <script>
+        // 获取DOM元素
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const toggleModeBtn = document.getElementById('toggleMode');
+        const authForm = document.getElementById('authForm');
+        const toggleTextLogin = toggleModeBtn.children[0]; // 登录提示
+        const toggleTextRegister = toggleModeBtn.children[1]; // 注册提示
+        // alert(toggleTextLogin.tagName, toggleTextRegister.tagName);
+        
+        // 状态标记，false为登录，true为注册
+        let isRegisterMode = false;
+
+        // 切换模式函数
+        function setMode(isRegister) {
+            isRegisterMode = isRegister;
+            if (isRegister) {
+                formTitle.textContent = '注册账号';
+                submitBtn.textContent = '立即注册';
+                confirmPassword.style.display = 'block'; // 显示确认密码
+                toggleTextLogin.style.display = 'none'; // 隐藏登录提示
+                toggleTextRegister.style.display = 'block'; // 显示注册提示
+            } else {
+                formTitle.textContent = '用户登录';
+                submitBtn.textContent = '登录';
+                confirmPassword.style.display = 'none'; // 隐藏确认密码
+                confirmPassword.value = ''; // 清空确认密码
+                toggleTextLogin.style.display = 'block'; // 显示登录提示
+                toggleTextRegister.style.display = 'none'; // 隐藏注册提示
+            }
+        }
+
+        // 绑定点击事件：点击下方的文字切换模式
+        toggleModeBtn.addEventListener('click', () => {
+            setMode(!isRegisterMode);
+        });
+
+        // 表单提交处理
+        authForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // 阻止表单默认提交刷新页面
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassVal = confirmPassword.value;
+
+            if (isRegisterMode) {
+                // 注册逻辑
+                if (password !== confirmPassVal) {
+                    alert('两次输入的密码不一致，请重新输入。');
+                    return;
+                }
+                alert(`注册成功！\n用户名: ${username}`);
+                // 这里可以添加 AJAX 请求发送注册数据
+            } else {
+                // 登录逻辑
+                alert(`登录成功！\n欢迎回来, ${username}`);
+                // 这里可以添加 AJAX 请求发送登录数据
+            }
+        });
+    </script>
+</body>
+</html>
