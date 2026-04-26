@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.15.2",
     "cesium": "^1.140.0",
+    "echarts": "^6.0.0",
     "element-plus": "^2.13.7",
     "less": "^4.6.4",
     "pinia": "^3.0.4",
