@@ -14,6 +14,35 @@
     </div>
     <!-- 中间地图 -->
     <div class="main-map">
+      <!-- 顶部 Header 控件栏 -->
+      <div class="map-header">
+        <div class="header-title">长三角城市群可视化系统</div>
+        <div class="header-controls">
+          <el-button size="small" class="control-btn">图层管理</el-button>
+          <el-button size="small" class="control-btn">数据查询</el-button>
+          <el-button size="small" class="control-btn">标注绘制</el-button>
+          <el-dropdown size="small" class="el-button">
+            <!-- 
+              触发内容区域：模仿按钮内部结构
+              注意：这里不需要额外的 span 包裹，直接用 template 或 div 即可
+            -->
+            <span class="el-dropdown-link">
+              分析工具
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
+            </span>
+
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>缓冲区分析</el-dropdown-item>
+                <el-dropdown-item>叠加分析</el-dropdown-item>
+                <el-dropdown-item divided>清空结果</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+      </div>
       <div class="map-block">
         <div ref="mapContainer" class="map-view"></div>
         <div v-if="!mapLoaded" class="loading-tip">正在加载天地图资源...</div>
@@ -148,6 +177,28 @@ onMounted(() => {
   align-items: stretch;
   min-width: 0;
 }
+.map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 12px;
+}
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
+.header-controls {
+  display: flex;
+  gap: 10px;
+}
+.control-btn {
+  font-size: 13px;
+}
 .map-block {
   flex: 1;
   background: rgba(255,255,255,0.95);
@@ -219,5 +270,11 @@ onMounted(() => {
   justify-content: center;
   color: #aaa;
   font-size: 15px;
+}
+.example-showcase .el-dropdown-link {
+  cursor: pointer;
+  color: var(--el-color-primary);
+  display: flex;
+  align-items: center;
 }
 </style>
