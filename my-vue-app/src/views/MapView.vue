@@ -20,7 +20,16 @@
       </div>
       <!-- 底部区域切换按钮 -->
       <div class="bottom-bar">
-        <el-button v-for="area in areas" :key="area" size="small" class="area-btn">{{ area }}</el-button>
+        <el-button 
+          v-for="area in areas" 
+          :key="area.name" 
+          size="small" 
+          class="area-btn"
+          :class="{ active: currentArea === area.name }"
+          @click="switchArea(area)"
+        >
+          {{ area.name }}
+        </el-button>
       </div>
     </div>
     <!-- 右侧面板 -->
@@ -41,11 +50,28 @@
 import { ref, onMounted } from 'vue';
 
 const TIAN_MAP_KEY = '31ac18b8bb0a640a09eb08deda097c4a';
-const mapContainer = ref(null);
-const mapLoaded = ref(false);
+let mapInstance = null; // 地图实例
+const mapContainer = ref(null); // 地图容器的 DOM 引用
+const mapLoaded = ref(false);   // 地图加载状态
+const currentArea = ref('上海');
+
+// 区域坐标配置
 const areas = [
-  '江苏', '浙江', '上海'
+  { name: '江苏', lng: 118.7969, lat: 32.0603, zoom: 9 },
+  { name: '浙江', lng: 120.1536, lat: 30.2873, zoom: 9 },
+  { name: '上海', lng: 121.4737, lat: 31.2304, zoom: 12 }
 ];
+
+// 切换区域
+const switchArea = (area) => {
+  currentArea.value = area.name;
+  if (mapInstance && window.T) {
+    const T = window.T;
+    const center = new T.LngLat(area.lng, area.lat);
+    // 使用 centerAndZoom 一步到位，避免异步问题
+    mapInstance.centerAndZoom(center, area.zoom);
+  }
+};
 
 const loadTianMapScript = () => {
   return new Promise((resolve, reject) => {
@@ -62,17 +88,20 @@ const loadTianMapScript = () => {
   });
 };
 
+const map_center = { lng: 121.4737, lat: 31.2304 };
+
 const initMap = async () => {
   try {
     const T = await loadTianMapScript();
-    const map = new T.Map(mapContainer.value, {
+    mapInstance = new T.Map(mapContainer.value, {
       projection: 'EPSG:4326'
     });
-    const center = new T.LngLat(121.4737, 31.2304); // 上海中心
-    map.centerAndZoom(center, 12);
+    const center = new T.LngLat(map_center.lng, map_center.lat); // 上海中心
+    mapInstance.centerAndZoom(center, 12);
     const mapTypeControl = new T.Control.MapType();
-    map.addControl(mapTypeControl);
+    mapInstance.addControl(mapTypeControl);
     mapLoaded.value = true;
+    console.log('✅ 天地图初始化成功！');
   } catch (error) {
     console.error('❌ 地图初始化失败:', error);
   }
@@ -162,6 +191,11 @@ onMounted(() => {
 }
 .area-btn {
   min-width: 72px;
+}
+.area-btn.active {
+  background: #409eff;
+  color: #fff;
+  border-color: #409eff;
 }
 .panel-block {
   background: rgba(255,255,255,0.95);
