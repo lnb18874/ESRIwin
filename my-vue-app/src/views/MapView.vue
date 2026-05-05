@@ -16,7 +16,7 @@
     <div class="main-map">
       <!-- 顶部 Header 控件栏 -->
       <div class="map-header">
-        <div class="header-title">长三角城市群可视化系统</div>
+        <!-- <div class="header-title">长三角城市群可视化系统</div> -->
         <div class="header-controls">
           <el-button size="small" class="control-btn">图层管理</el-button>
           <el-button size="small" class="control-btn">数据查询</el-button>

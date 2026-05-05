@@ -2,16 +2,19 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
-import cesium from 'vite-plugin-cesium'
-import path from 'path' // 1. 引入 path 模块，用于处理路径
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    cesium(),
     vueDevTools(),
   ],
+  // 🔑 放行 3D 场景所需的二进制资源
+  assetsInclude: ['**/*.wasm', '**/*.bin', '**/*.glb'],
+  
+  // 推荐：worker 使用 ES 模块格式
+  worker: { format: 'es' },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
