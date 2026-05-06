@@ -1,4 +1,3 @@
-
 <template>
   <div class="dashboard">
     <!-- 左侧面板 -->
@@ -18,14 +17,33 @@
       <div class="map-header">
         <!-- <div class="header-title">长三角城市群可视化系统</div> -->
         <div class="header-controls">
-          <el-button size="small" class="control-btn">商务三角</el-button>
-          <el-button size="small" class="control-btn">枢纽商圈</el-button>
-          <el-button size="small" class="control-btn">水乡文旅</el-button>
+          <el-button 
+            size="small" 
+            class="control-btn" 
+            :type="activeTab === '商务三角' ? 'primary' : 'default'"
+            @click="mainTabsStore.setActiveTab('商务三角')"
+          >
+            商务三角
+          </el-button>
+
+          <el-button 
+            size="small" 
+            class="control-btn" 
+            :type="activeTab === '枢纽商圈' ? 'primary' : 'default'"
+            @click="mainTabsStore.setActiveTab('枢纽商圈')"
+          >
+            枢纽商圈
+          </el-button>
+
+          <el-button 
+            size="small" 
+            class="control-btn" 
+            :type="activeTab === '水乡文旅' ? 'primary' : 'default'"
+            @click="mainTabsStore.setActiveTab('水乡文旅')"
+          >
+            水乡文旅
+          </el-button>
           <el-dropdown size="small" class="el-button">
-            <!-- 
-              触发内容区域：模仿按钮内部结构
-              注意：这里不需要额外的 span 包裹，直接用 template 或 div 即可
-            -->
             <span class="el-dropdown-link">
               分析工具
               <el-icon class="el-icon--right">
@@ -35,17 +53,25 @@
 
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>商务三角</el-dropdown-item>
-                <el-dropdown-item>枢纽商圈</el-dropdown-item>
-                <el-dropdown-item divided>水乡文旅</el-dropdown-item>
+                <el-dropdown-item>功能1</el-dropdown-item>
+                <el-dropdown-item>功能2</el-dropdown-item>
+                <el-dropdown-item divided>功能3</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
       </div>
       <div class="map-block">
-        <div ref="mapContainer" class="map-view"></div>
-        <div v-if="!mapLoaded" class="loading-tip">正在加载GeoScene地图...</div>
+        <template v-if="activeTab === '商务三角'">
+          <div ref="mapContainer" class="map-view"></div>
+          <div v-if="!mapLoaded" class="loading-tip">正在加载GeoScene地图...</div>
+        </template>
+        <template v-else-if="activeTab === '枢纽商圈'">
+          <div class="map-view" style="display:flex;align-items:center;justify-content:center;font-size:22px;">[枢纽商圈内容区，可自定义]</div>
+        </template>
+        <template v-else-if="activeTab === '水乡文旅'">
+          <div class="map-view" style="display:flex;align-items:center;justify-content:center;font-size:22px;">[水乡文旅内容区，可自定义]</div>
+        </template>
       </div>
       <!-- 底部区域切换按钮 -->
       <div class="bottom-bar">
@@ -76,13 +102,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Map, MapView } from '@/utils/geoscene';
+import { useMainTabsStore } from '@/stores/mainTabs';
 
 let mapInstance = null; // 地图实例
 const mapContainer = ref(null); // 地图容器的 DOM 引用
 const mapLoaded = ref(false);   // 地图加载状态
 const currentArea = ref('上海');
+const mainTabsStore = useMainTabsStore();
+const activeTab = computed(() => mainTabsStore.activeTab);
 
 // 区域坐标配置
 const areas = [
@@ -104,9 +133,14 @@ const switchArea = (area) => {
 const map_center = { lng: 121.4737, lat: 31.2304 };
 
 const initMap = async () => {
+  if (!mapContainer.value) {
+    console.warn('地图容器不存在，跳过初始化');
+    return;
+  }
+
   try {
     const map = new Map({
-      basemap: 'tianditu-vector' 
+      basemap: 'tianditu-vector'
     });
 
     mapInstance = new MapView({
@@ -124,7 +158,25 @@ const initMap = async () => {
 };
 
 onMounted(() => {
-  initMap();
+  // 初始时如果activeTab是'商务三角'，初始化地图
+  if (activeTab.value === '商务三角') {
+    initMap();
+  }
+});
+
+// 监听activeTab变化，当切换到'商务三角'时初始化地图
+watch(activeTab, (newTab, oldTab) => {
+  if (newTab === '商务三角' && !mapInstance) {
+    // 延迟执行，确保DOM已更新
+    setTimeout(() => {
+      initMap();
+    }, 100);
+  } else if (oldTab === '商务三角' && newTab !== '商务三角' && mapInstance) {
+    // 离开商务三角时销毁地图实例
+    mapInstance.destroy();
+    mapInstance = null;
+    mapLoaded.value = false;
+  }
 });
 </script>
 
