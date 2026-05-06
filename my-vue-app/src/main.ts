@@ -8,6 +8,7 @@ import router from './router'
 // import "@/assets/less/index.less"
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+import '@geoscene/core/assets/geoscene/themes/light/main.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 const app = createApp(App)
