@@ -61,7 +61,12 @@ const selectFeature = (feature: OverlayFeature) => {
 
 <style scoped>
 .tod-dashboard {
-  min-height: 100dvh;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   color: #142033;
   background:
     linear-gradient(180deg, rgba(235, 244, 255, 0.96), rgba(248, 251, 255, 0.98)),
@@ -70,30 +75,36 @@ const selectFeature = (feature: OverlayFeature) => {
 
 .dashboard-body {
   display: grid;
-  grid-template-columns: minmax(240px, 18vw) minmax(420px, 1fr) minmax(280px, 22vw);
+  grid-template-columns: minmax(240px, 18vw) minmax(0, 1fr) minmax(280px, 22vw);
   gap: 14px;
-  width: min(100%, 1920px);
-  min-height: calc(100dvh - 71px);
+  width: 100%;
+  min-height: 0;
+  flex: 1;
   margin: 0 auto;
   padding: 14px;
+  overflow: hidden;
+  align-items: stretch;
 }
 
 .left-region,
 .right-region {
   min-height: 0;
+  overflow-y: auto;
 }
 
 .map-region {
   min-height: 0;
+  height: 100%;
 }
 
 @media (max-width: 1280px) {
   .dashboard-body {
-    grid-template-columns: minmax(220px, 260px) minmax(360px, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(220px, 34vh);
     grid-template-areas:
       'left map'
-      'right map';
-    align-items: start;
+      'left right';
+    align-items: stretch;
   }
 
   .left-region {
@@ -102,8 +113,7 @@ const selectFeature = (feature: OverlayFeature) => {
 
   .map-region {
     grid-area: map;
-    position: sticky;
-    top: 14px;
+    height: 100%;
   }
 
   .right-region {
@@ -112,18 +122,53 @@ const selectFeature = (feature: OverlayFeature) => {
 }
 
 @media (max-width: 980px) {
+  .tod-dashboard {
+    min-height: 100dvh;
+    height: auto;
+    overflow: visible;
+  }
+
   .dashboard-body {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     grid-template-areas:
       'map'
       'left'
       'right';
-    min-height: auto;
+    gap: 12px;
+    padding: 12px;
+    overflow: visible;
   }
 
   .map-region {
-    position: relative;
-    top: auto;
+    height: clamp(420px, 58dvh, 620px);
+  }
+
+  .left-region,
+  .right-region {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-body {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .map-region {
+    height: clamp(360px, 56dvh, 520px);
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-body {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .map-region {
+    height: clamp(300px, 54dvh, 420px);
   }
 }
 </style>

@@ -196,9 +196,62 @@ input[type='range'] {
 
 @media (max-width: 980px) {
   .panel-stack {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(220px, 1fr));
-    overflow-x: auto;
+    gap: 10px;
+  }
+
+  .panel-card {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-stack {
+    gap: 8px;
+  }
+
+  .panel-card {
+    padding: 10px;
+  }
+
+  .section-head h2 {
+    font-size: 14px;
+  }
+
+  .tool-btn {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-stack {
+    gap: 6px;
+  }
+
+  .panel-card {
+    padding: 8px;
+  }
+
+  .section-head h2 {
+    font-size: 13px;
+  }
+
+  .layer-row,
+  .legend-item {
+    font-size: 12px;
+  }
+
+  .tool-btn {
+    font-size: 10px;
+    min-width: 60px;
+  }
+
+  .opacity-control {
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .opacity-control input {
+    width: 100%;
   }
 }
 </style>

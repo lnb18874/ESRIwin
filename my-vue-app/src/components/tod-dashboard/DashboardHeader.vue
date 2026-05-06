@@ -176,6 +176,7 @@ input[type='range'] {
 @media (max-width: 1180px) {
   .dashboard-header {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .mode-tabs {
@@ -190,6 +191,117 @@ input[type='range'] {
 
   .system-title {
     white-space: normal;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .brand {
+    gap: 10px;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .system-title {
+    font-size: 16px;
+  }
+
+  .system-subtitle {
+    display: none;
+  }
+
+  .mode-tabs {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .mode-tab {
+    min-width: 90px;
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .mode-tab small {
+    font-size: 10px;
+  }
+
+  .timeline {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .system-title {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .mode-tabs {
+    gap: 4px;
+    padding: 3px;
+    border-radius: 6px;
+  }
+
+  .mode-tab {
+    min-width: 70px;
+    height: 40px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+
+  .mode-tab span {
+    font-size: 12px;
+  }
+
+  .mode-tab small {
+    font-size: 9px;
+    display: none;
+  }
+
+  .timeline span {
+    display: none;
+  }
+
+  .timeline input {
+    width: 80px;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
   }
 }
 </style>

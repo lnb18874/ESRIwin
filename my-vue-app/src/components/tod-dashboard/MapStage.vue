@@ -155,7 +155,9 @@ onBeforeUnmount(() => {
 .map-shell {
   position: relative;
   min-width: 0;
-  min-height: 520px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid #cfdae7;
   border-radius: 8px;
@@ -410,7 +412,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 980px) {
   .map-shell {
-    min-height: 62vh;
+    min-height: 100%;
   }
 }
 </style>

@@ -438,9 +438,69 @@ defineProps<{
 
 @media (max-width: 980px) {
   .analysis-panel {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(260px, 1fr));
-    overflow-x: auto;
+    gap: 10px;
+  }
+
+  .panel-card {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .analysis-panel {
+    gap: 8px;
+  }
+
+  .panel-card {
+    padding: 10px;
+  }
+
+  .section-head h2 {
+    font-size: 14px;
+  }
+
+  .bar-row span {
+    font-size: 12px;
+  }
+
+  .gauge strong {
+    font-size: 24px;
+  }
+
+  .list-link {
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .analysis-panel {
+    gap: 8px;
+  }
+
+  .panel-card {
+    padding: 8px;
+  }
+
+  .station-card {
+    padding: 8px;
+  }
+
+  .section-head h2 {
+    font-size: 13px;
+  }
+
+  .bar-row span {
+    font-size: 11px;
+  }
+
+  .gauge strong {
+    font-size: 20px;
+  }
+
+  .list-link {
+    font-size: 11px;
+    padding: 6px;
   }
 }
 </style>
