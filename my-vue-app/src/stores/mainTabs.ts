@@ -1,12 +1,14 @@
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
+
+export type PlanningMode = 'business' | 'hub' | 'water'
 
 export const useMainTabsStore = defineStore('mainTabs', {
   state: () => ({
-    activeTab: '商务三角',
+    activeTab: 'business' as PlanningMode,
   }),
   actions: {
-    setActiveTab(tab: string) {
-      this.activeTab = tab;
+    setActiveTab(tab: PlanningMode) {
+      this.activeTab = tab
     },
   },
-});
+})
