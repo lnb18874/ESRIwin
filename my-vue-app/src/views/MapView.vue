@@ -18,9 +18,9 @@
       <div class="map-header">
         <!-- <div class="header-title">长三角城市群可视化系统</div> -->
         <div class="header-controls">
-          <el-button size="small" class="control-btn">图层管理</el-button>
-          <el-button size="small" class="control-btn">数据查询</el-button>
-          <el-button size="small" class="control-btn">标注绘制</el-button>
+          <el-button size="small" class="control-btn">商务三角</el-button>
+          <el-button size="small" class="control-btn">枢纽商圈</el-button>
+          <el-button size="small" class="control-btn">水乡文旅</el-button>
           <el-dropdown size="small" class="el-button">
             <!-- 
               触发内容区域：模仿按钮内部结构
@@ -35,9 +35,9 @@
 
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>缓冲区分析</el-dropdown-item>
-                <el-dropdown-item>叠加分析</el-dropdown-item>
-                <el-dropdown-item divided>清空结果</el-dropdown-item>
+                <el-dropdown-item>商务三角</el-dropdown-item>
+                <el-dropdown-item>枢纽商圈</el-dropdown-item>
+                <el-dropdown-item divided>水乡文旅</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -45,7 +45,7 @@
       </div>
       <div class="map-block">
         <div ref="mapContainer" class="map-view"></div>
-        <div v-if="!mapLoaded" class="loading-tip">正在加载天地图资源...</div>
+        <div v-if="!mapLoaded" class="loading-tip">正在加载GeoScene地图...</div>
       </div>
       <!-- 底部区域切换按钮 -->
       <div class="bottom-bar">
@@ -77,8 +77,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Map, MapView } from '@/utils/geoscene';
 
-const TIAN_MAP_KEY = '31ac18b8bb0a640a09eb08deda097c4a';
 let mapInstance = null; // 地图实例
 const mapContainer = ref(null); // 地图容器的 DOM 引用
 const mapLoaded = ref(false);   // 地图加载状态
@@ -95,43 +95,29 @@ const areas = [
 // 切换区域
 const switchArea = (area) => {
   currentArea.value = area.name;
-  if (mapInstance && window.T) {
-    const T = window.T;
-    const center = new T.LngLat(area.lng, area.lat);
-    // 使用 centerAndZoom 一步到位，避免异步问题
-    mapInstance.centerAndZoom(center, area.zoom);
+  if (mapInstance) {
+    mapInstance.center = [area.lng, area.lat];
+    mapInstance.zoom = area.zoom;
   }
-};
-
-const loadTianMapScript = () => {
-  return new Promise((resolve, reject) => {
-    if (window.T) {
-      resolve(window.T);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = `https://api.tianditu.gov.cn/api?v=4.0&tk=${TIAN_MAP_KEY}`;
-    script.type = 'text/javascript';
-    script.onload = () => setTimeout(() => resolve(window.T), 100);
-    script.onerror = () => reject(new Error('天地图 JS API 加载失败'));
-    document.head.appendChild(script);
-  });
 };
 
 const map_center = { lng: 121.4737, lat: 31.2304 };
 
 const initMap = async () => {
   try {
-    const T = await loadTianMapScript();
-    mapInstance = new T.Map(mapContainer.value, {
-      projection: 'EPSG:4326'
+    const map = new Map({
+      basemap: 'tianditu-vector' 
     });
-    const center = new T.LngLat(map_center.lng, map_center.lat); // 上海中心
-    mapInstance.centerAndZoom(center, 12);
-    const mapTypeControl = new T.Control.MapType();
-    mapInstance.addControl(mapTypeControl);
+
+    mapInstance = new MapView({
+      container: mapContainer.value,
+      map: map,
+      center: [map_center.lng, map_center.lat],
+      zoom: 12
+    });
+
     mapLoaded.value = true;
-    console.log('✅ 天地图初始化成功！');
+    console.log('✅ GeoScene 地图初始化成功！');
   } catch (error) {
     console.error('❌ 地图初始化失败:', error);
   }

@@ -1,54 +1,53 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天地图全屏示例</title>
-    <style>
-        /* 核心关键：让html和body占满整个视口，并去除默认边距 */
-        html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            font-family: "Microsoft YaHei", sans-serif;
-        }
+<html><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>GeoScene Maps SDK for JavaScript Tutorials: Display a Web Map</title>
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+  <link rel="stylesheet" href="https://js.geoscene.cn/4.29/geoscene/themes/light/main.css">
+  <script src="https://js.geoscene.cn/4.29/"></script>
 
-        /* 地图容器：必须设置高度为100%才能显示 */
-        #mapContainer {
-            width: 100%;
-            height: 100%;
-            overflow: hidden; /* 隐藏滚动条，让体验更像原生应用 */
+  <script>
+    require([
+      "geoscene/config",
+      "geoscene/WebMap",
+      "geoscene/views/MapView",
+      "geoscene/widgets/ScaleBar",
+      "geoscene/widgets/Legend"
+    ], function(geosceneConfig, WebMap, MapView, ScaleBar, Legend) {
+      const webmap = new WebMap({
+        portalItem: {
+          id: "2a78a76e9a4144f9873355367ae76e26"
         }
-    </style>
-    
-    <script type="text/javascript" src="http://api.tianditu.gov.cn/api?v=4.0&tk=31ac18b8bb0a640a09eb08deda097c4a"></script>
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: webmap
+
+      });
+
+      const scalebar = new ScaleBar({
+        view: view
+      });
+
+      view.ui.add(scalebar, "bottom-left");
+
+      const legend = new Legend ({
+        view: view
+      });
+      view.ui.add(legend, "top-right");
+
+  });
+  </script>
 </head>
 <body>
-    <!-- 地图容器 -->
-    <div id="mapContainer"></div>
+  <div id="viewDiv"></div>
 
-    <script type="text/javascript">
-        var map;
-        
-        function initMap() {
-            // 1. 创建地图实例，绑定到 div 容器
-            // projection: 'EPSG:4326' 是常用的坐标系，也可以不传使用默认的墨卡托
-            map = new T.Map('mapContainer');
-
-            // 2. 设置中心点（以南京为例：经度 118.7969, 纬度 32.0603）
-            // 你可以修改这两个数字来改变地图显示的地点
-            var centerPoint = new T.LngLat(118.7969, 32.0603);
-
-            // 3. 初始化地图：设置中心点和缩放级别（1-18级，数字越大越详细）
-            map.centerAndZoom(centerPoint, 15);
-            
-            // 4. 开启鼠标滚轮缩放（可选，提升体验）
-            map.enableScrollWheelZoom();
-        }
-
-        // 页面加载完成后执行初始化
-        window.onload = initMap;
-    </script>
-</body>
-</html>
+</body></html>

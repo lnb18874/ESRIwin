@@ -298,3 +298,22 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+
+<!-- <template>
+  <div id="viewDiv"></div>
+</template>
+
+<style scoped>
+  #viewDiv{
+        padding:0;
+        margin:0;
+        height:100%;
+        width:100%;
+        background: #000;
+      }
+</style>
+
+<script setup>
+
+</script> -->
