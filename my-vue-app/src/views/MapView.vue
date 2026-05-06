@@ -88,7 +88,8 @@ const currentArea = ref('上海');
 const areas = [
   { name: '江苏', lng: 118.7969, lat: 32.0603, zoom: 9 },
   { name: '浙江', lng: 120.1536, lat: 30.2873, zoom: 9 },
-  { name: '上海', lng: 121.4737, lat: 31.2304, zoom: 12 }
+  { name: '上海', lng: 121.4737, lat: 31.2304, zoom: 12 },
+  { name: '安徽', lng: 117.2830, lat: 31.8612, zoom: 9 },
 ];
 
 // 切换区域
