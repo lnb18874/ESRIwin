@@ -106,11 +106,15 @@
           <span>水乡客厅风貌预览</span>
         </div>
       </section>
+      <button class="tourism-link" type="button" @click="goTourism">
+        查看完整文旅数据 →
+      </button>
     </template>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import type { PlanningMode } from '@/stores/mainTabs'
 import { businessBars, hubSuggestions, riskList, scatterDots } from './data'
 import type { ModeConfig } from './types'
@@ -119,6 +123,12 @@ defineProps<{
   mode: ModeConfig
   activeMode: PlanningMode
 }>()
+
+const router = useRouter()
+
+function goTourism() {
+  router.push('/tourism')
+}
 </script>
 
 <style scoped>
@@ -434,6 +444,25 @@ defineProps<{
   to {
     transform: translateX(40%);
   }
+}
+
+.tourism-link {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  border: 1px solid #2d5a4b;
+  border-radius: 8px;
+  color: #2d5a4b;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(45, 90, 75, 0.04);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.tourism-link:hover {
+  color: #fff;
+  background: #2d5a4b;
 }
 
 @media (max-width: 980px) {
