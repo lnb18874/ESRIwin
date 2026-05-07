@@ -3,112 +3,89 @@
     <div ref="mapContainer" class="map-view"></div>
     <div v-if="!mapLoaded" class="loading-tip">正在加载 GeoScene 底图...</div>
 
-    <div class="map-overlay">
-      <div class="rail-line rail-main"></div>
-      <div class="rail-line rail-branch"></div>
-      <div class="station-pin" :style="mode.pinStyle">
-        <span>{{ mode.station.slice(0, 2) }}</span>
-      </div>
-
-      <template v-if="activeMode === 'business'">
-        <div class="insar-heat" :style="{ opacity: opacity / 100 }"></div>
-        <button
-          v-for="block in businessBlocks"
-          :key="block.id"
-          class="mass-block"
-          :class="block.risk"
-          :style="block.style"
-          type="button"
-          @click="$emit('select-feature', block)"
-        >
-          <span>{{ block.far }}</span>
-        </button>
-      </template>
-
-      <template v-if="activeMode === 'hub'">
-        <div class="province-boundary"></div>
-        <div v-for="flow in hubFlows" :key="flow.id" class="flow-line" :style="flow.style"></div>
-        <button
-          v-for="point in breakPoints"
-          :key="point.id"
-          class="break-point"
-          :style="point.style"
-          type="button"
-          @click="$emit('select-feature', point)"
-        ></button>
-      </template>
-
-      <template v-if="activeMode === 'water'">
-        <div class="lst-heat" :style="{ opacity: opacity / 100 }"></div>
-        <div class="height-cylinder">
-          <span>24m</span>
-        </div>
-        <div class="view-corridor"></div>
-        <button
-          v-for="model in waterModels"
-          :key="model.id"
-          class="heritage-model"
-          :class="{ exceed: model.exceed }"
-          :style="model.style"
-          type="button"
-          @click="$emit('select-feature', model)"
-        ></button>
-      </template>
-
-      <div class="popup-card" :class="{ show: selectedFeature }">
-        <template v-if="selectedFeature">
-          <strong>{{ selectedFeature.name }}</strong>
-          <span>{{ selectedFeature.metric }}</span>
-        </template>
+    <!-- OD 流线动画层 (枢纽模式) -->
+    <div v-if="activeMode === 'hub' && layerStates.flow" class="flow-overlay" :style="{ opacity: opacity / 100 }">
+      <div
+        v-for="flow in odFlowLines"
+        :key="flow.id"
+        class="flow-path"
+        :style="flow.style"
+      >
+        <div class="flow-dot" :style="{ animationDuration: flow.duration + 's' }"></div>
       </div>
     </div>
 
+    <!-- 弹窗 -->
+    <div class="popup-card" :class="{ show: selectedFeature }">
+      <template v-if="selectedFeature">
+        <strong>{{ selectedFeature.name }}</strong>
+        <span>{{ selectedFeature.metric }}</span>
+      </template>
+    </div>
+
     <div class="map-status">
-      <span>MapView 预览</span>
-      <strong>{{ mode.mapHint }}</strong>
+      <span>MapView · {{ mode.mapHint }}</span>
+      <strong>{{ activeModeLabel }}</strong>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Map, MapView } from '@/utils/geoscene'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  Map, MapView, GraphicsLayer, Point, Polyline, Polygon,
+  SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol, Graphic,
+} from '@/utils/geoscene'
 import type { PlanningMode } from '@/stores/mainTabs'
-import { breakPoints, businessBlocks, hubFlows, waterModels } from './data'
 import type { ModeConfig, OverlayFeature } from './types'
 
 const props = defineProps<{
   mode: ModeConfig
   activeMode: PlanningMode
   opacity: number
+  layerStates: Record<string, boolean>
   selectedFeature: OverlayFeature | null
-}>()
-
-defineEmits<{
-  'select-feature': [feature: OverlayFeature]
 }>()
 
 const mapContainer = ref<HTMLDivElement>()
 const mapLoaded = ref(false)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mapView: any = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let graphicsLayer: any = null
 
-let mapInstance: any = null
+const modeLabels: Record<PlanningMode, string> = {
+  business: '商务型 · 地隧韧性协同',
+  hub: '枢纽商圈型 · 营运活力缝合',
+  water: '水乡文旅型 · TOD 潜力智选',
+}
+const activeModeLabel = computed(() => modeLabels[props.activeMode] ?? '')
 
+// OD 流线配置(枢纽模式)
+const odFlowLines = [
+  { id: 'od1', style: { top: '35%', left: '18%', width: '42%', transform: 'rotate(-8deg)' }, duration: 3.5 },
+  { id: 'od2', style: { top: '48%', left: '22%', width: '38%', transform: 'rotate(5deg)' }, duration: 4.2 },
+  { id: 'od3', style: { top: '55%', left: '14%', width: '50%', transform: 'rotate(-14deg)' }, duration: 3.8 },
+]
+
+// ============ 地图初始化 ============
 const initMap = async () => {
-  if (!mapContainer.value || mapInstance) return
-
+  if (!mapContainer.value || mapView) return
   await nextTick()
 
   try {
-    const map = new Map({
-      basemap: 'tianditu-vector',
-    })
-
-    mapInstance = new MapView({
+    const map = new Map({ basemap: 'tianditu-vector' })
+    mapView = new MapView({
       container: mapContainer.value,
       map,
       center: props.mode.center,
       zoom: props.mode.zoom,
     })
+    await mapView.when()
+
+    graphicsLayer = new GraphicsLayer({ id: 'tod-graphics' })
+    map.add(graphicsLayer)
+    drawCurrentMode()
 
     mapLoaded.value = true
   } catch (error) {
@@ -116,39 +93,219 @@ const initMap = async () => {
   }
 }
 
-const flyToMode = () => {
-  if (!mapInstance) return
-
-  const target = {
-    center: props.mode.center,
-    zoom: props.mode.zoom,
-  }
-
-  if (typeof mapInstance.goTo === 'function') {
-    mapInstance.goTo(target)
-  } else {
-    mapInstance.center = target.center
-    mapInstance.zoom = target.zoom
-  }
+// ============ 绘制图形 ============
+function clearGraphics() {
+  if (graphicsLayer) graphicsLayer.removeAll()
 }
 
-onMounted(() => {
-  initMap()
-})
+function drawCurrentMode() {
+  clearGraphics()
+  const ls = props.layerStates
+  if (props.activeMode === 'business') drawBusiness(ls)
+  if (props.activeMode === 'hub') drawHub(ls)
+  if (props.activeMode === 'water') drawWater(ls)
+  // 全局轨交线
+  if (ls.rail) drawRail()
+}
 
-watch(
-  () => props.activeMode,
-  () => {
-    flyToMode()
-  },
-)
+function drawRail() {
+  const gfx: any[] = []
+  const cx = props.mode.center[0], cy = props.mode.center[1]
+  const line = new Polyline({ paths: [[[cx - 0.15, cy + 0.05], [cx, cy - 0.02], [cx + 0.12, cy + 0.03]]] })
+  gfx.push(new Graphic({ geometry: line, symbol: new SimpleLineSymbol({ color: '#2563eb', width: 2.5, style: 'solid' }) }))
+  graphicsLayer.addMany(gfx)
+}
 
-onBeforeUnmount(() => {
-  if (mapInstance) {
-    mapInstance.destroy()
-    mapInstance = null
+// ---------- 商务型 ----------
+function drawBusiness(ls: Record<string, boolean>) {
+  const gfx: any[] = []
+  const cx = 121.327, cy = 31.2
+
+  // InSAR 沉降场 — 半透明圆
+  if (ls.insar) {
+    const points = [
+      { lon: cx - 0.012, lat: cy + 0.008, r: 0.015, risk: 'danger' as const },
+      { lon: cx + 0.008, lat: cy - 0.006, r: 0.012, risk: 'warning' as const },
+      { lon: cx + 0.018, lat: cy + 0.010, r: 0.010, risk: 'danger' as const },
+      { lon: cx - 0.006, lat: cy - 0.012, r: 0.013, risk: 'warning' as const },
+      { lon: cx + 0.022, lat: cy - 0.002, r: 0.009, risk: 'normal' as const },
+    ]
+    const colors = { danger: [239, 68, 68, 0.35] as any, warning: [245, 158, 11, 0.30] as any, normal: [34, 197, 94, 0.25] as any }
+    for (const p of points) {
+      const ring: number[][] = []
+      for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * Math.PI * 2
+        ring.push([p.lon + Math.cos(a) * p.r, p.lat + Math.sin(a) * p.r])
+      }
+      gfx.push(new Graphic({
+        geometry: new Polygon({ rings: [ring] }),
+        symbol: new SimpleFillSymbol({ color: colors[p.risk], outline: { color: colors[p.risk].slice(0, 3).concat([0.6]) as any, width: 1 } }),
+        attributes: { name: `监测点 · ${p.risk === 'danger' ? '高危' : p.risk === 'warning' ? '预警' : '正常'}`, metric: 'InSAR 沉降异常区' },
+      }))
+    }
   }
+
+  // 施工标注
+  if (ls.construction) {
+    const sites = [
+      { lon: cx - 0.01, lat: cy + 0.006, type: 'shield' },
+      { lon: cx + 0.015, lat: cy - 0.008, type: 'foundation_pit' },
+      { lon: cx + 0.005, lat: cy + 0.012, type: 'tower_crane' },
+    ]
+    for (const s of sites) {
+      gfx.push(new Graphic({
+        geometry: new Point({ longitude: s.lon, latitude: s.lat }),
+        symbol: new SimpleMarkerSymbol({ color: s.type === 'shield' ? '#f59e0b' : s.type === 'foundation_pit' ? '#ef4444' : '#f59e0b', size: 10, outline: { color: '#fff', width: 1.5 } }),
+        attributes: { name: s.type === 'shield' ? '盾构段' : s.type === 'foundation_pit' ? '基坑' : '塔吊群', metric: `YOLO α=${(0.5 + Math.random() * 0.4).toFixed(2)}` },
+      }))
+    }
+  }
+
+  graphicsLayer.addMany(gfx)
+}
+
+// ---------- 枢纽商圈型 ----------
+function drawHub(ls: Record<string, boolean>) {
+  const gfx: any[] = []
+  const cx = 121.086, cy = 31.298
+
+  // 慢行断点
+  if (ls.breakpoints) {
+    const bps = [
+      { lon: cx - 0.005, lat: cy + 0.015, name: '花桥北省界桥', metric: '绕行620m · 紧急' },
+      { lon: cx + 0.018, lat: cy - 0.005, name: '非机动车缺口', metric: '绕行320m · 高' },
+      { lon: cx + 0.010, lat: cy + 0.020, name: '花桥南接驳', metric: '绕行480m · 紧急' },
+    ]
+    for (const bp of bps) {
+      gfx.push(new Graphic({
+        geometry: new Point({ longitude: bp.lon, latitude: bp.lat }),
+        symbol: new SimpleMarkerSymbol({ color: '#ef4444', size: 12, outline: { color: '#fff', width: 2 } }),
+        attributes: { id: bp.name, name: bp.name, metric: bp.metric },
+      }))
+    }
+  }
+
+  // 省界
+  const boundary = new Polyline({ paths: [[[121.105, 31.24], [121.11, 31.36]]] })
+  gfx.push(new Graphic({
+    geometry: boundary,
+    symbol: new SimpleLineSymbol({ color: '#64748b', width: 2, style: 'dash-dot' }),
+    attributes: { name: '沪苏省界' },
+  }))
+
+  // 等时圈
+  if (ls.isochrone) {
+    for (const r of [0.02, 0.04]) {
+      const ring: number[][] = []
+      for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * Math.PI * 2
+        ring.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.7])
+      }
+      gfx.push(new Graphic({
+        geometry: new Polygon({ rings: [ring] }),
+        symbol: new SimpleFillSymbol({ color: r === 0.02 ? [139, 92, 246, 0.15] as any : [139, 92, 246, 0.08] as any, outline: { color: [139, 92, 246, 0.5], width: 1.5, style: 'dash' } }),
+        attributes: { name: r === 0.02 ? '15分钟' : '30分钟', metric: '等时圈' },
+      }))
+    }
+  }
+
+  graphicsLayer.addMany(gfx)
+}
+
+// ---------- 水乡文旅型 ----------
+function drawWater(ls: Record<string, boolean>) {
+  const gfx: any[] = []
+  const cx = 120.88, cy = 31.08
+
+  // 风貌建筑
+  if (ls.heritage) {
+    const models = [
+      { lon: cx - 0.008, lat: cy + 0.010, name: '风貌建筑A', metric: '高度18m · 符合限高' },
+      { lon: cx + 0.012, lat: cy - 0.005, name: '占位模型B', metric: '高度31m · 超出限高' },
+      { lon: cx + 0.006, lat: cy + 0.016, name: '滨水设施C', metric: '高度12m · 符合限高' },
+    ]
+    for (const m of models) {
+      const exceeded = m.metric.includes('超出')
+      gfx.push(new Graphic({
+        geometry: new Point({ longitude: m.lon, latitude: m.lat }),
+        symbol: new SimpleMarkerSymbol({ color: exceeded ? '#ef4444' : '#38bdf8', size: exceeded ? 14 : 10, outline: { color: '#fff', width: 1.5 } }),
+        attributes: { id: m.name, name: m.name, metric: m.metric },
+      }))
+    }
+  }
+
+  // LST 冷岛区域
+  if (ls.lst) {
+    const lstData = [
+      { lon: cx - 0.005, lat: cy + 0.005, r: 0.012, temp: 28.5 },
+      { lon: cx + 0.010, lat: cy - 0.008, r: 0.014, temp: 26.8 },
+      { lon: cx - 0.012, lat: cy - 0.004, r: 0.010, temp: 30.2 },
+    ]
+    for (const d of lstData) {
+      const ring: number[][] = []
+      for (let i = 0; i <= 32; i++) {
+        const a = (i / 32) * Math.PI * 2
+        ring.push([d.lon + Math.cos(a) * d.r, d.lat + Math.sin(a) * d.r])
+      }
+      const alpha = d.temp < 28 ? 0.35 : 0.18
+      const color = d.temp < 28 ? [34, 197, 94, alpha] as any : [245, 158, 11, alpha] as any
+      gfx.push(new Graphic({
+        geometry: new Polygon({ rings: [ring] }),
+        symbol: new SimpleFillSymbol({ color, outline: { color: [34, 197, 94, 0.5], width: 1 } }),
+        attributes: { name: `LST ${d.temp}°C`, metric: d.temp < 28 ? '冷岛效应区' : '热岛区' },
+      }))
+    }
+  }
+
+  // 视域通廊
+  if (ls.corridor) {
+    const corridor = new Polygon({ rings: [[[cx - 0.015, cy + 0.005], [cx + 0.02, cy - 0.008], [cx + 0.025, cy + 0.012], [cx - 0.01, cy + 0.018], [cx - 0.015, cy + 0.005]]] })
+    gfx.push(new Graphic({
+      geometry: corridor,
+      symbol: new SimpleFillSymbol({ color: [34, 197, 94, 0.15] as any, outline: { color: [34, 197, 94, 0.6], width: 1.5 } }),
+      attributes: { name: '视域通廊区' },
+    }))
+  }
+
+  // 限高约束体 (简化为红色虚线圆)
+  if (ls['height-limit']) {
+    const ring: number[][] = []
+    for (let i = 0; i <= 32; i++) {
+      const a = (i / 32) * Math.PI * 2
+      ring.push([cx + Math.cos(a) * 0.018, cy + Math.sin(a) * 0.018])
+    }
+    gfx.push(new Graphic({
+      geometry: new Polygon({ rings: [ring] }),
+      symbol: new SimpleFillSymbol({ color: [239, 68, 68, 0.08] as any, outline: { color: [239, 68, 68, 0.7], width: 2, style: 'dash' } }),
+      attributes: { name: '24m 限高约束区' },
+    }))
+  }
+
+  graphicsLayer.addMany(gfx)
+}
+
+// ============ 图层刷新 ============
+watch(() => props.layerStates, () => { if (mapLoaded.value) drawCurrentMode() }, { deep: true })
+watch(() => props.activeMode, () => {
+  if (!mapLoaded.value) return
+  clearGraphics()
+  drawCurrentMode()
+  flyToMode()
 })
+watch(() => props.opacity, (val) => {
+  if (graphicsLayer) graphicsLayer.opacity = val / 100
+})
+
+function flyToMode() {
+  if (!mapView) return
+  const target = { center: props.mode.center, zoom: props.mode.zoom }
+  if (typeof mapView.goTo === 'function') mapView.goTo(target)
+  else { mapView.center = target.center; mapView.zoom = target.zoom }
+}
+
+// ============ 生命周期 ============
+onMounted(() => { initMap() })
+onBeforeUnmount(() => { if (mapView) { mapView.destroy(); mapView = null } })
 </script>
 
 <style scoped>
@@ -169,250 +326,75 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: #dceaf5;
 }
 
 .loading-tip {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   z-index: 5;
   transform: translate(-50%, -50%);
-  color: #2f4a65;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.82);
+  padding: 8px 12px; border-radius: 6px;
+  color: #2f4a65; background: rgba(255, 255, 255, 0.82);
 }
 
-.map-overlay {
+/* OD 流线动画层 */
+.flow-overlay {
   position: absolute;
-  inset: 0;
-  z-index: 2;
+  inset: 0; z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(rgba(37, 99, 235, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(37, 99, 235, 0.08) 1px, transparent 1px);
-  background-size: 72px 72px;
 }
-
-.map-overlay button {
-  pointer-events: auto;
-}
-
-.rail-line,
-.province-boundary,
-.flow-line {
+.flow-path {
   position: absolute;
-  height: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #0ea5e9 40%, #fff 60%, transparent);
   transform-origin: left center;
-  border-radius: 999px;
+  opacity: 0.8;
 }
-
-.rail-main {
-  left: 13%;
-  top: 52%;
-  width: 72%;
-  background: #2563eb;
-  transform: rotate(-8deg);
-}
-
-.rail-branch {
-  left: 42%;
-  top: 30%;
-  width: 42%;
-  border-top: 3px dashed #d97706;
-  transform: rotate(55deg);
-}
-
-.station-pin {
+.flow-dot {
   position: absolute;
-  display: grid;
-  place-items: center;
-  width: clamp(42px, 5vw, 54px);
-  height: clamp(42px, 5vw, 54px);
-  transform: translate(-50%, -50%);
-  border: 3px solid #ffffff;
+  top: 50%;
+  width: 8px; height: 8px;
+  margin-top: -4px;
   border-radius: 50%;
-  color: #ffffff;
-  font-weight: 800;
-  background: #1769e0;
-  box-shadow: 0 0 0 10px rgba(23, 105, 224, 0.14), 0 10px 24px rgba(23, 105, 224, 0.28);
+  background: #fff;
+  box-shadow: 0 0 12px #0ea5e9, 0 0 24px rgba(14, 165, 233, 0.6);
+  animation: flowMove linear infinite;
 }
 
-.insar-heat,
-.lst-heat {
-  position: absolute;
-  inset: 10% 12%;
-  border-radius: 48%;
-  filter: blur(8px);
-}
-
-.insar-heat {
-  background:
-    radial-gradient(circle at 38% 35%, rgba(239, 68, 68, 0.7), transparent 20%),
-    radial-gradient(circle at 55% 50%, rgba(245, 158, 11, 0.56), transparent 24%),
-    radial-gradient(circle at 62% 72%, rgba(59, 130, 246, 0.54), transparent 30%);
-}
-
-.mass-block,
-.heritage-model {
-  position: absolute;
-  width: clamp(52px, 7vw, 70px);
-  min-height: 44px;
-  transform: translate(-50%, -100%) skewY(-12deg);
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 4px;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  box-shadow: 12px 12px 0 rgba(15, 23, 42, 0.18);
-  cursor: pointer;
-}
-
-.mass-block.high {
-  background: linear-gradient(180deg, #ef4444, #991b1b);
-}
-
-.mass-block.medium {
-  background: linear-gradient(180deg, #f59e0b, #92400e);
-}
-
-.mass-block.low {
-  background: linear-gradient(180deg, #22c55e, #166534);
-}
-
-.province-boundary {
-  left: 46%;
-  top: 14%;
-  width: 2px;
-  height: 72%;
-  border-left: 3px dashed rgba(71, 85, 105, 0.76);
-}
-
-.flow-line {
-  background: linear-gradient(90deg, transparent, #0ea5e9, #ffffff, transparent);
-  animation: flowPulse 2.2s linear infinite;
-  box-shadow: 0 0 18px rgba(14, 165, 233, 0.72);
-  transform: rotate(var(--angle));
-}
-
-.break-point {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  transform: translate(-50%, -50%);
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 10px rgba(239, 68, 68, 0.18), 0 0 22px rgba(239, 68, 68, 0.6);
-  cursor: pointer;
-}
-
-.lst-heat {
-  background:
-    radial-gradient(circle at 35% 58%, rgba(14, 165, 233, 0.62), transparent 24%),
-    radial-gradient(circle at 52% 42%, rgba(34, 197, 94, 0.44), transparent 28%),
-    radial-gradient(circle at 68% 36%, rgba(249, 115, 22, 0.56), transparent 22%);
-}
-
-.height-cylinder {
-  position: absolute;
-  left: 50%;
-  top: 54%;
-  display: grid;
-  place-items: center;
-  width: min(250px, 42vw);
-  height: min(150px, 24vw);
-  transform: translate(-50%, -50%) perspective(500px) rotateX(62deg);
-  border: 3px solid rgba(239, 68, 68, 0.82);
-  border-radius: 50%;
-  background: rgba(239, 68, 68, 0.14);
-  box-shadow: 0 0 44px rgba(239, 68, 68, 0.2) inset;
-}
-
-.height-cylinder span {
-  transform: rotateX(-62deg);
-  color: #991b1b;
-  font-weight: 800;
-}
-
-.view-corridor {
-  position: absolute;
-  left: 43%;
-  top: 49%;
-  width: 35%;
-  height: 22%;
-  transform: skewX(-20deg);
-  border: 1px solid rgba(22, 163, 74, 0.7);
-  background: rgba(34, 197, 94, 0.26);
-}
-
-.heritage-model {
-  width: clamp(48px, 6vw, 58px);
-  background: linear-gradient(180deg, #38bdf8, #0369a1);
-}
-
-.heritage-model.exceed {
-  background: linear-gradient(180deg, #ef4444, #991b1b);
-  box-shadow: 0 0 24px rgba(239, 68, 68, 0.62), 12px 12px 0 rgba(15, 23, 42, 0.18);
+@keyframes flowMove {
+  0% { left: -4px; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: calc(100% + 4px); opacity: 0; }
 }
 
 .popup-card {
   position: absolute;
-  left: 22px;
-  bottom: 54px;
+  left: 22px; bottom: 54px;
+  z-index: 10;
   display: none;
   width: min(260px, calc(100% - 44px));
   padding: 12px;
-  border: 1px solid #d6e1ee;
-  border-radius: 8px;
-  color: #142033;
-  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #d6e1ee; border-radius: 8px;
+  color: #142033; background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
 }
-
-.popup-card.show {
-  display: grid;
-  gap: 6px;
-}
-
-.popup-card span {
-  color: #64748b;
-  font-size: 12px;
-}
+.popup-card.show { display: grid; gap: 6px; }
+.popup-card span { color: #64748b; font-size: 12px; }
 
 .map-status {
   position: absolute;
-  left: 16px;
-  bottom: 14px;
+  left: 16px; bottom: 14px;
   z-index: 3;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: flex; flex-wrap: wrap; gap: 10px;
   padding: 8px 10px;
-  border: 1px solid #d6e1ee;
-  border-radius: 7px;
-  color: #64748b;
-  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #d6e1ee; border-radius: 7px;
+  color: #64748b; background: rgba(255, 255, 255, 0.88);
 }
-
-.map-status strong {
-  color: #142033;
-}
-
-@keyframes flowPulse {
-  from {
-    background-position: -120px 0;
-  }
-
-  to {
-    background-position: 260px 0;
-  }
-}
+.map-status strong { color: #142033; }
 
 @media (max-width: 980px) {
-  .map-shell {
-    min-height: 100%;
-  }
+  .map-shell { min-height: 100%; }
 }
 </style>

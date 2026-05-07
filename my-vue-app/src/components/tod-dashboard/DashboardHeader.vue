@@ -10,24 +10,48 @@
 
     <nav class="mode-tabs" aria-label="场景切换">
       <button
-        v-for="mode in modes"
-        :key="mode.key"
+        v-for="m in modes"
+        :key="m.key"
         class="mode-tab"
-        :class="{ active: activeMode === mode.key }"
+        :class="{ active: activeMode === m.key }"
         type="button"
-        @click="$emit('change-mode', mode.key)"
+        @click="$emit('change-mode', m.key)"
       >
-        <span>{{ mode.label }}</span>
-        <small>{{ mode.station }}</small>
+        <span>{{ m.label }}</span>
+        <small>{{ m.station }}</small>
       </button>
     </nav>
 
     <div class="header-tools">
-      <label class="timeline">
-        <span>InSAR 时间轴</span>
-        <input :value="timeline" type="range" min="2019" max="2026" @input="updateTimeline" />
-        <strong>{{ timeline }}</strong>
-      </label>
+      <!-- 时间轴控制 -->
+      <div class="timeline-group">
+        <label class="timeline">
+          <span>InSAR 时间轴</span>
+          <input
+            type="range"
+            :min="tl.minYear"
+            :max="tl.maxYear"
+            :value="tl.currentYear"
+            @input="onTimelineInput"
+          />
+          <strong>{{ tl.currentYear }}</strong>
+        </label>
+        <div class="playback-controls">
+          <button class="pb-btn" type="button" :title="tl.playing ? '暂停' : '播放'" @click="tl.togglePlay()">
+            {{ tl.playing ? '⏸' : '▶' }}
+          </button>
+          <button
+            v-for="s in [1, 2, 4]"
+            :key="s"
+            class="pb-btn speed"
+            :class="{ active: tl.speed === s }"
+            type="button"
+            @click="tl.setSpeed(s)"
+          >
+            {{ s }}×
+          </button>
+        </div>
+      </div>
       <button class="icon-btn" type="button" title="用户">U</button>
       <button class="icon-btn" type="button" title="关于">i</button>
     </div>
@@ -36,12 +60,12 @@
 
 <script setup lang="ts">
 import type { PlanningMode } from '@/stores/mainTabs'
+import { useTimelineStore } from '@/stores/timeline'
 import type { ModeConfig } from './types'
 
 defineProps<{
   modes: ModeConfig[]
   activeMode: PlanningMode
-  timeline: number
 }>()
 
 const emit = defineEmits<{
@@ -49,8 +73,12 @@ const emit = defineEmits<{
   'update:timeline': [value: number]
 }>()
 
-const updateTimeline = (event: Event) => {
-  emit('update:timeline', Number((event.target as HTMLInputElement).value))
+const tl = useTimelineStore()
+
+function onTimelineInput(event: Event) {
+  const val = Number((event.target as HTMLInputElement).value)
+  tl.setYear(val)
+  emit('update:timeline', val)
 }
 </script>
 
@@ -60,248 +88,71 @@ const updateTimeline = (event: Event) => {
   grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
   align-items: center;
   gap: 16px;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-bottom: 1px solid #d7e2ee;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
 }
 
-.brand,
-.mode-tabs,
-.header-tools,
-.timeline {
-  display: flex;
-  align-items: center;
-}
-
-.brand {
-  gap: 12px;
-  min-width: 0;
-}
-
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .brand-mark {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  border: 1px solid #7bb2f3;
-  border-radius: 8px;
-  color: #0f5cb8;
-  font-weight: 800;
-  background: #eef7ff;
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 42px; height: 42px;
+  border: 1px solid #7bb2f3; border-radius: 8px;
+  color: #0f5cb8; font-weight: 800; background: #eef7ff;
 }
-
-.system-title {
-  color: #132338;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-
-.system-subtitle,
-.mode-tab small,
-.timeline span {
-  color: #65768a;
-  font-size: 12px;
-}
+.system-title { color: #132338; font-size: 18px; font-weight: 800; white-space: nowrap; }
+.system-subtitle { color: #65768a; font-size: 11px; }
 
 .mode-tabs {
-  gap: 8px;
-  padding: 5px;
-  border: 1px solid #d3dfec;
-  border-radius: 8px;
-  background: #f4f8fc;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px; border: 1px solid #d3dfec; border-radius: 8px; background: #f4f8fc;
 }
-
 .mode-tab {
-  min-width: 112px;
-  height: 48px;
-  border: 0;
-  border-radius: 6px;
-  color: #475569;
-  background: transparent;
-  cursor: pointer;
+  min-width: 100px; height: 46px; border: 0; border-radius: 6px;
+  color: #475569; background: transparent; cursor: pointer;
 }
+.mode-tab span { display: block; font-size: 13px; font-weight: 700; }
+.mode-tab small { display: block; font-size: 10px; color: #65768a; }
+.mode-tab.active { color: #fff; background: #1769e0; box-shadow: 0 6px 16px rgba(23, 105, 224, 0.22); }
+.mode-tab.active small { color: rgba(255, 255, 255, 0.78); }
 
-.mode-tab span,
-.mode-tab small {
-  display: block;
-}
+.header-tools { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 
-.mode-tab span {
-  font-size: 14px;
-  font-weight: 700;
+.timeline-group {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border: 1px solid #d5e1ee; border-radius: 8px; background: #f8fbff;
 }
+.timeline { display: flex; align-items: center; gap: 6px; }
+.timeline span { color: #65768a; font-size: 11px; white-space: nowrap; }
+.timeline strong { font-size: 13px; color: #142033; min-width: 32px; }
+input[type='range'] { accent-color: #1769e0; width: 80px; }
 
-.mode-tab.active {
-  color: #ffffff;
-  background: #1769e0;
-  box-shadow: 0 8px 18px rgba(23, 105, 224, 0.22);
+.playback-controls { display: flex; align-items: center; gap: 2px; }
+.pb-btn {
+  width: 26px; height: 26px; border: 1px solid #d5e1ee; border-radius: 4px;
+  color: #1f3b57; background: #fff; cursor: pointer; font-size: 12px;
+  display: grid; place-items: center; transition: all 0.15s;
 }
-
-.mode-tab.active small {
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.header-tools {
-  justify-content: flex-end;
-  gap: 10px;
-  min-width: 0;
-}
-
-.timeline {
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid #d5e1ee;
-  border-radius: 8px;
-  background: #f8fbff;
-}
-
-input[type='range'] {
-  accent-color: #1769e0;
-}
+.pb-btn:hover { border-color: #1769e0; color: #1769e0; }
+.pb-btn.speed.active { background: #1769e0; color: #fff; border-color: #1769e0; }
 
 .icon-btn {
-  width: 34px;
-  height: 34px;
-  border: 1px solid #d5e1ee;
-  border-radius: 7px;
-  color: #1f3b57;
-  background: #ffffff;
-  cursor: pointer;
+  width: 32px; height: 32px; border: 1px solid #d5e1ee; border-radius: 6px;
+  color: #1f3b57; background: #fff; cursor: pointer;
 }
 
 @media (max-width: 1180px) {
-  .dashboard-header {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .mode-tabs {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .header-tools {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .system-title {
-    white-space: normal;
-  }
+  .dashboard-header { grid-template-columns: 1fr; gap: 10px; }
+  .mode-tabs { width: 100%; overflow-x: auto; }
+  .header-tools { justify-content: flex-start; flex-wrap: wrap; }
 }
-
 @media (max-width: 768px) {
-  .dashboard-header {
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .brand {
-    gap: 10px;
-    min-width: 0;
-    flex: 0 1 auto;
-  }
-
-  .brand-mark {
-    width: 40px;
-    height: 40px;
-    font-size: 14px;
-  }
-
-  .system-title {
-    font-size: 16px;
-  }
-
-  .system-subtitle {
-    display: none;
-  }
-
-  .mode-tabs {
-    gap: 6px;
-    padding: 4px;
-  }
-
-  .mode-tab {
-    min-width: 90px;
-    height: 44px;
-    font-size: 13px;
-  }
-
-  .mode-tab small {
-    font-size: 10px;
-  }
-
-  .timeline {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .icon-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-header {
-    padding: 8px 10px;
-    gap: 8px;
-  }
-
-  .brand {
-    min-width: 0;
-  }
-
-  .brand-mark {
-    width: 36px;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .system-title {
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .mode-tabs {
-    gap: 4px;
-    padding: 3px;
-    border-radius: 6px;
-  }
-
-  .mode-tab {
-    min-width: 70px;
-    height: 40px;
-    font-size: 11px;
-    padding: 4px 6px;
-  }
-
-  .mode-tab span {
-    font-size: 12px;
-  }
-
-  .mode-tab small {
-    font-size: 9px;
-    display: none;
-  }
-
-  .timeline span {
-    display: none;
-  }
-
-  .timeline input {
-    width: 80px;
-  }
-
-  .icon-btn {
-    width: 30px;
-    height: 30px;
-    font-size: 11px;
-  }
+  .dashboard-header { padding: 8px 10px; gap: 8px; }
+  .brand-mark { width: 36px; height: 36px; font-size: 12px; }
+  .system-title { font-size: 15px; }
+  .system-subtitle { display: none; }
+  .mode-tab { min-width: 70px; height: 40px; }
+  .mode-tab small { display: none; }
 }
 </style>

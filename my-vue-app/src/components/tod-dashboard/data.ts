@@ -36,10 +36,23 @@ export const modes: ModeConfig[] = [
   },
 ]
 
+// 全量图层控制（三种模式共用，由 LayerToolPanel 按模式过滤展示）
 export const defaultLayerControls: LayerControl[] = [
+  // 全局共享
   { id: 'rail', name: '轨道交通网', color: '#2563eb', enabled: true },
+  // 商务型
   { id: 'insar', name: 'InSAR 沉降场', color: '#ef4444', enabled: true },
+  { id: 'construction', name: '施工标注 (YOLO)', color: '#f59e0b', enabled: false },
   { id: 'vitality', name: '活力热力图', color: '#16a34a', enabled: false },
+  // 枢纽商圈型
+  { id: 'flow', name: 'OD 客流光带', color: '#0ea5e9', enabled: true },
+  { id: 'breakpoints', name: '慢行断点', color: '#ef4444', enabled: true },
+  { id: 'isochrone', name: '等时圈', color: '#8b5cf6', enabled: false },
+  // 水乡文旅型
+  { id: 'heritage', name: '风貌建筑', color: '#38bdf8', enabled: true },
+  { id: 'lst', name: 'LST 冷岛', color: '#16a34a', enabled: true },
+  { id: 'corridor', name: '视域通廊', color: '#16a34a', enabled: false },
+  { id: 'height-limit', name: '限高约束体', color: '#ef4444', enabled: true },
 ]
 
 export const tools: ToolItem[] = [
